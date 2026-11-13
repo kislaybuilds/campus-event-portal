@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Campus Event Management and Registration Portal - Live seat tracking, event booking, and printable pass generation." />
+  <title>Campus Event Management & Registration Portal</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Global Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-block" onclick="App.switchView('events')">
+        <div class="brand-icon">
+          <i class="fas fa-calendar-star"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">CAMPUS EVENTS</span>
+          <span class="brand-subtitle">Registration & Seat Management</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-link active" data-view="events" onclick="App.switchView('events')">
+          <i class="fas fa-compass"></i> Explore Events
+        </button>
+        <button class="nav-link" data-view="tickets" onclick="App.switchView('tickets')">
+          <i class="fas fa-ticket-alt"></i> My Passes
+        </button>
+        <button class="nav-link admin-nav-btn" data-view="admin" onclick="App.switchView('admin')">
+          <i class="fas fa-shield-alt"></i> Organizer Admin
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-primary btn-sm" onclick="App.openModal('createEventModal')">
+          <i class="fas fa-plus-circle"></i> Create Event
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- VIEW 1: EXPLORE EVENTS & REGISTRATION -->
+    <section id="eventsSection" class="view-section">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <i class="fas fa-bolt"></i> Live Real-Time Seat Counter & Over-registration Prevention
+          </div>
+          <h1 class="hero-title">Discover, Register & Experience Campus Events</h1>
+          <p class="hero-description">
+            Official portal for college fests, technical hackathons, workshops, and sports championships.
+            Track live seat availability, secure your spot, and instantly download your authenticated e-ticket pass.
+          </p>
+          <div class="hero-features-chips">
+            <span class="chip"><i class="fas fa-chair text-success"></i> Real-time Seat Meter</span>
+            <span class="chip"><i class="fas fa-qrcode text-warning"></i> Printable QR E-Tickets</span>
+            <span class="chip"><i class="fas fa-shield-check text-primary"></i> Zero Duplicate Bookings</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Filter Toolbar -->
+      <div class="controls-toolbar">
+        <div class="search-box-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="eventSearchInput" class="search-input" placeholder="Search events by title, organizer, venue, or keyword..." />
+        </div>
+
+        <div class="filter-controls-row">
+          <!-- Category Pills -->
+          <div class="category-pills-scroller" id="categoryPillsContainer">
+            <button class="category-pill active" data-category="All">All Categories</button>
+            <button class="category-pill" data-category="Technical"><i class="fas fa-code"></i> Technical</button>
+            <button class="category-pill" data-category="Cultural"><i class="fas fa-guitar"></i> Cultural</button>
+            <button class="category-pill" data-category="Workshop"><i class="fas fa-laptop-code"></i> Workshops</button>
+            <button class="category-pill" data-category="Seminar"><i class="fas fa-microphone"></i> Seminars</button>
+            <button class="category-pill" data-category="Sports"><i class="fas fa-running"></i> Sports</button>
+          </div>
+
+          <!-- Secondary Filters: Availability & Sort -->
+          <div class="dropdown-filters">
+            <div class="select-wrapper">
+              <label for="availabilityFilter" class="sr-only">Availability</label>
+              <select id="availabilityFilter" class="form-select">
+                <option value="all">All Seat Statuses</option>
+                <option value="available">Seats Available</option>
+                <option value="soldout">Housefull / Closed</option>
+              </select>
+            </div>
+
+            <div class="select-wrapper">
+              <label for="sortEventsSelect" class="sr-only">Sort by</label>
+              <select id="sortEventsSelect" class="form-select">
+                <option value="date-asc">Date: Earliest First</option>
+                <option value="date-desc">Date: Latest First</option>
+                <option value="seats-available">Most Seats Available</option>
+                <option value="popularity">Most Popular</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-meta-bar">
+          <span id="eventsResultsCount" class="results-counter">Loading events...</span>
+          <span class="text-muted small"><i class="fas fa-circle text-success pulse-dot"></i> Live Seat Tracking Enabled</span>
+        </div>
+      </div>
+
+      <!-- Event Cards Grid -->
+      <div class="events-grid" id="eventsGrid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyEventsState" class="empty-state-card d-none">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+        <h3>No Events Found</h3>
+        <p class="text-muted">No campus events match your current search and filter criteria.</p>
+        <button class="btn btn-outline mt-3" onclick="App.currentSearchQuery=''; document.getElementById('eventSearchInput').value=''; document.querySelector('[data-category=All]').click();">
+          <i class="fas fa-redo"></i> Reset Filters
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 2: MY TICKETS / DOWNLOAD PASSES -->
+    <section id="myTicketsSection" class="view-section d-none">
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-badge"><i class="fas fa-ticket-alt"></i> DIGITAL PASS VERIFICATION</div>
+          <h2>Lookup My Event Passes & E-Tickets</h2>
+          <p class="text-muted">Enter your Student Registration Number to retrieve, view, or reprint your booked event tickets anytime.</p>
+        </div>
+
+        <div class="ticket-lookup-box card">
+          <form id="findTicketsForm" class="lookup-form">
+            <div class="form-group flex-1">
+              <label for="findRegNo" class="form-label">Student Registration Number</label>
+              <div class="input-with-icon">
+                <i class="fas fa-id-badge"></i>
+                <input type="text" id="findRegNo" class="form-control" placeholder="e.g. 12304918" required />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-search-ticket">
+              <i class="fas fa-search"></i> Search My Passes
+            </button>
+          </form>
+        </div>
+
+        <div id="myTicketsResults" class="my-tickets-results mt-4">
+          <!-- Populated by App.handleFindTickets -->
+          <div class="ticket-lookup-hint">
+            <i class="fas fa-info-circle text-primary"></i>
+            <span>Tip: Try searching for pre-loaded demo student Reg No. <code>12304918</code> or <code>12201844</code> to see sample booked passes!</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ORGANIZER / ADMIN DASHBOARD -->
+    <section id="adminSection" class="view-section d-none">
+      <div class="admin-container">
+        <!-- Admin Header -->
+        <div class="admin-dashboard-header">
+          <div>
+            <div class="section-badge"><i class="fas fa-user-shield"></i> ORGANIZER CONSOLE</div>
+            <h2>Campus Event & Seat Capacity Control</h2>
+            <p class="text-muted">Manage college events, inspect real-time seat occupancy, review attendee rosters, and export reports.</p>
+          </div>
+          <div class="admin-header-actions">
+            <button class="btn btn-outline" id="resetDemoDataBtn" title="Reset to Initial Demo State">
+              <i class="fas fa-history"></i> Reset Demo Data
+            </button>
+            <button class="btn btn-primary" onclick="App.openModal('createEventModal')">
+              <i class="fas fa-plus"></i> + Create New Event
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Stats Cards -->
+        <div class="admin-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon bg-indigo"><i class="fas fa-calendar-alt"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total Events</span>
+              <span class="stat-value" id="statTotalEvents">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-success"><i class="fas fa-user-check"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total Registrations</span>
+              <span class="stat-value" id="statTotalRegistrations">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-blue"><i class="fas fa-chair"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total Seat Capacity</span>
+              <span class="stat-value" id="statTotalCapacity">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-purple"><i class="fas fa-chart-pie"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Overall Occupancy</span>
+              <span class="stat-value" id="statOccupancyRate">0%</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon bg-rose"><i class="fas fa-lock"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Housefull Events</span>
+              <span class="stat-value" id="statSoldOutEvents">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Events Management Table Card -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <div>
+              <h3>Campus Events Roster & Seat Occupancy</h3>
+              <p class="text-muted small">Live seat-count monitoring and over-registration controls.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Event Details</th>
+                  <th>Schedule</th>
+                  <th>Venue</th>
+                  <th style="min-width: 200px;">Live Seat Availability</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminEventsTableBody">
+                <!-- Rendered dynamically by AdminManager -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- Modal 1: Event Details Modal -->
+  <div class="modal-overlay" id="eventDetailsModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-lg">
+      <button class="modal-close-btn" onclick="App.closeModal('eventDetailsModal')">&times;</button>
+      <div id="eventDetailsContent">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Student Registration Modal -->
+  <div class="modal-overlay" id="registrationModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <span class="badge badge-primary"><i class="fas fa-ticket-alt"></i> EVENT REGISTRATION</span>
+          <h3 id="regModalEventTitle" class="mt-1">Event Registration</h3>
+          <p id="regModalEventMeta" class="text-muted small"></p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeModal('registrationModal')">&times;</button>
+      </div>
+
+      <div class="modal-seat-alert" id="regModalRemainingSeats">
+        <!-- Seat count text -->
+      </div>
+
+      <form id="studentRegistrationForm" class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="studentFullName">Full Name *</label>
+            <input type="text" id="studentFullName" class="form-control" placeholder="e.g. Aarav Sharma" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="studentRegNo">Registration Number *</label>
+            <input type="text" id="studentRegNo" class="form-control" placeholder="e.g. 12304918" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="studentEmail">University Email *</label>
+            <input type="email" id="studentEmail" class="form-control" placeholder="name.regno@lpu.in" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="studentPhone">Contact Number *</label>
+            <input type="tel" id="studentPhone" class="form-control" placeholder="+91 98765 43210" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="studentDepartment">Department / School *</label>
+            <select id="studentDepartment" class="form-control" required>
+              <option value="">Select Department</option>
+              <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="Electronics & Communication">Electronics & Communication</option>
+              <option value="Mechanical Engineering">Mechanical Engineering</option>
+              <option value="Civil Engineering">Civil Engineering</option>
+              <option value="Bio-Technology">Bio-Technology</option>
+              <option value="School of Management / MBA">School of Management / MBA</option>
+              <option value="Commerce & Economics">Commerce & Economics</option>
+              <option value="Journalism & Mass Media">Journalism & Mass Media</option>
+              <option value="Design & Architecture">Design & Architecture</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="studentYear">Academic Year *</label>
+            <select id="studentYear" class="form-control" required>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year" selected>3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Postgraduate">Postgraduate</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-terms">
+          <label class="checkbox-label">
+            <input type="checkbox" required checked />
+            <span>I confirm that I will present my valid University Identity Card at the event gate.</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closeModal('registrationModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check-circle"></i> Confirm & Generate E-Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Printable E-Ticket Pass Modal -->
+  <div class="modal-overlay" id="ticketModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-ticket-dialog">
+      <div class="modal-header ticket-modal-top-bar">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-ticket-alt text-primary fa-lg"></i>
+          <div>
+            <h4 class="mb-0">Registration Slip / E-Ticket Pass</h4>
+            <span class="text-muted small">Official Admission Confirmation</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeModal('ticketModal')">&times;</button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div id="ticketModalContent">
+          <!-- Rendered by TicketManager.renderTicket -->
+        </div>
+      </div>
+
+      <div class="modal-footer ticket-modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal('ticketModal')">
+          <i class="fas fa-times"></i> Close
+        </button>
+        <button type="button" class="btn btn-primary" id="printTicketBtn">
+          <i class="fas fa-print"></i> Print / Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Organizer Create Event Modal -->
+  <div class="modal-overlay" id="createEventModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div>
+          <span class="badge badge-primary"><i class="fas fa-plus"></i> EVENT PUBLISHER</span>
+          <h3 class="mt-1">Create & Publish New Campus Event</h3>
+          <p class="text-muted small">Define schedule, venue, capacity limit, and eligibility criteria.</p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeModal('createEventModal')">&times;</button>
+      </div>
+
+      <form id="createEventForm" class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="eventTitle">Event Title *</label>
+          <input type="text" id="eventTitle" name="eventTitle" class="form-control" placeholder="e.g. National RoboWars Championship 2026" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="eventCategory">Category *</label>
+            <select id="eventCategory" name="eventCategory" class="form-control" required>
+              <option value="Technical">Technical</option>
+              <option value="Cultural">Cultural</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Seminar">Seminar</option>
+              <option value="Sports">Sports</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="eventCapacity">Seat Capacity (Registration Limit) *</label>
+            <input type="number" id="eventCapacity" name="eventCapacity" class="form-control" placeholder="e.g. 150" min="1" max="5000" required />
+            <small class="text-muted">The system will strictly lock registrations once this limit is reached.</small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="eventDate">Date *</label>
+            <input type="date" id="eventDate" name="eventDate" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="eventTime">Time & Schedule *</label>
+            <input type="text" id="eventTime" name="eventTime" class="form-control" placeholder="e.g. 10:00 AM - 04:00 PM" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="eventVenue">Venue / Auditorium *</label>
+            <input type="text" id="eventVenue" name="eventVenue" class="form-control" placeholder="e.g. Shanti Devi Mittal Auditorium, Block 32" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="eventOrganizer">Organizing Department / Club *</label>
+            <input type="text" id="eventOrganizer" name="eventOrganizer" class="form-control" placeholder="e.g. Directorate of Student Welfare" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="eventDescription">Event Description *</label>
+          <textarea id="eventDescription" name="eventDescription" class="form-control" rows="3" placeholder="Provide detailed background, itinerary, and activities of this event..." required></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="eventEligibility">Eligibility Criteria *</label>
+            <input type="text" id="eventEligibility" name="eventEligibility" class="form-control" placeholder="e.g. Open to all B.Tech and MCA students" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="eventTags">Keywords / Tags (Comma-separated)</label>
+            <input type="text" id="eventTags" name="eventTags" class="form-control" placeholder="e.g. AI, Robotics, Certificate, Prize" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="eventBannerUrl">Banner Image URL (Optional)</label>
+          <input type="url" id="eventBannerUrl" name="eventBannerUrl" class="form-control" placeholder="https://images.unsplash.com/..." />
+          <small class="text-muted">Leave empty to use a curated default campus banner.</small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closeModal('createEventModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-bullhorn"></i> Publish Event
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Registered Attendees Roster Modal -->
+  <div class="modal-overlay" id="attendeesModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-header">
+        <div>
+          <span class="badge badge-success"><i class="fas fa-users"></i> ATTENDEE ROSTER</span>
+          <h3 id="attendeesModalEventTitle" class="mt-1">Event Attendees</h3>
+          <span id="attendeesModalCount" class="badge badge-primary">0 registered</span>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeModal('attendeesModal')">&times;</button>
+      </div>
+
+      <div class="attendees-modal-toolbar">
+        <p class="text-muted small mb-0">List of verified students registered for this event with unique booking codes.</p>
+        <button id="exportAttendeesBtn" class="btn btn-sm btn-outline-primary">
+          <i class="fas fa-file-csv"></i> Export Roster (CSV)
+        </button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div class="table-responsive attendees-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Booking Pass ID</th>
+                <th>Student Details</th>
+                <th>Contact</th>
+                <th>Department & Year</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendeesListTableBody">
+              <!-- Rendered by AdminManager.openAttendeesModal -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal('attendeesModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Floating Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <p class="footer-brand"><i class="fas fa-graduation-cap"></i> Campus Event Management & Registration Portal</p>
+        <p class="footer-subtext">CA1 Project-Based Assessment &bull; Designed & Built for Lovely Professional University</p>
+      </div>
+      <div class="footer-right">
+        <span class="footer-badge"><i class="fas fa-code"></i> HTML5 &bull; CSS3 &bull; Vanilla JavaScript</span>
+        <span class="footer-badge"><i class="fas fa-check-circle"></i> 100% Client-side &bull; Zero Server Latency</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ticket.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
